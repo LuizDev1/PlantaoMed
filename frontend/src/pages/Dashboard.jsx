@@ -1,30 +1,59 @@
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
-  const { usuario, logout } = useAuth();
-  const navigate = useNavigate();
+  const { usuario } = useAuth();
 
-  function handleLogout() {
-    logout();
-    navigate('/');
-  }
+  const estiloCard = {
+    border: '1px solid #cccccc',
+    borderRadius: '8px',
+    padding: '20px',
+    textDecoration: 'none',
+    color: '#222222'
+  };
 
   return (
     <div>
-      <h1>Dashboard do PlantãoMed</h1>
+      <h1>Dashboard</h1>
 
       <p>
-        Bem-vindo, {usuario?.nome}
+        Bem-vindo, <strong>{usuario?.nome}</strong>.
       </p>
 
       <p>
-        Tipo de usuário: {usuario?.tipo}
+        Perfil: {usuario?.tipo}
       </p>
 
-      <button onClick={handleLogout}>
-        Sair
-      </button>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns:
+            'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '16px',
+          marginTop: '24px'
+        }}
+      >
+        <Link to="/medicos" style={estiloCard}>
+          <h2>Médicos</h2>
+          <p>Gerenciar médicos cadastrados.</p>
+        </Link>
+
+        <Link to="/plantoes" style={estiloCard}>
+          <h2>Plantões</h2>
+          <p>Gerenciar plantões disponíveis.</p>
+        </Link>
+
+        <Link to="/candidaturas" style={estiloCard}>
+          <h2>Candidaturas</h2>
+          <p>Acompanhar candidaturas aos plantões.</p>
+        </Link>
+
+        <Link to="/relatorio" style={estiloCard}>
+          <h2>Relatório</h2>
+          <p>Visualizar o relatório de candidaturas.</p>
+        </Link>
+      </div>
     </div>
   );
 }
