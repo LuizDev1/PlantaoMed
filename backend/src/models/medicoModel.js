@@ -1,136 +1,61 @@
-const {
-  lerDados,
-  salvarDados: salvarArquivo
-} = require('../utils/fileManager');
-
-function carregarDados() {
-  const dados = lerDados();
-
-  if (!Array.isArray(dados.medicos)) {
-    return [];
-  }
-
-  return dados.medicos;
-}
-
-function salvarDados(medicos) {
-  const dados = lerDados();
-
-  dados.medicos = medicos;
-
-  salvarArquivo(dados);
-}
+const pool = require('../config/db');
 
 function validarDados(medico) {
-  const nomeValido =
-    typeof medico.nome === 'string' &&
-    medico.nome.trim() !== '';
+  const nomeValido = typeof medico.nome === 'string' && medico.nome.trim() !== '';
+  const emailValido = typeof medico.email === 'string' && medico.email.trim() !== '' && medico.email.includes('@');
+  const especialidadeValida = typeof medico.especialidade === 'string' && medico.especialidade.trim() !== '';
+  const telefoneValido = typeof medico.telefone === 'string' && medico.telefone.trim() !== '';
 
-  const emailValido =
-    typeof medico.email === 'string' &&
-    medico.email.trim() !== '' &&
-    medico.email.includes('@');
+  return nomeValido && emailValido && especialidadeValida && telefoneValido;
+}
 
-  const especialidadeValida =
-    typeof medico.especialidade === 'string' &&
-    medico.especialidade.trim() !== '';
+async function criarMedico(medico) {
+  const nome = medico.nome.trim();
+  const email = medico.email.trim().toLowerCase();
+  const especialidade = medico.especialidade.trim();
+  const telefone = medico.telefone.trim();
 
-  const telefoneValido =
-    typeof medico.telefone === 'string' &&
-    medico.telefone.trim() !== '';
-
-  return (
-    nomeValido &&
-    emailValido &&
-    especialidadeValida &&
-    telefoneValido
+  const [result] = await pool.query(
+    'INSERT INTO medicos (nome, email, especialidade, telefone) VALUES (?, ?, ?, ?)',
+    [nome, email, especialidade, telefone]
   );
+  
+  return { id: result.insertId, nome, email, especialidade, telefone };
 }
 
-function criarMedico(medico) {
-  const medicos = carregarDados();
-
-  const novoId =
-    medicos.length > 0
-      ? Math.max(
-          ...medicos.map(
-            (medicoCadastrado) =>
-              Number(medicoCadastrado.id) || 0
-          )
-        ) + 1
-      : 1;
-
-  const novoMedico = {
-    id: novoId,
-    nome: medico.nome.trim(),
-    email: medico.email.trim().toLowerCase(),
-    especialidade: medico.especialidade.trim(),
-    telefone: medico.telefone.trim()
-  };
-
-  medicos.push(novoMedico);
-  salvarDados(medicos);
-
-  return novoMedico;
+async function buscarPorId(id) {
+  const [rows] = await pool.query('SELECT * FROM medicos WHERE id = ?', [Number(id)]);
+  return rows.length > 0 ? rows[0] : null;
 }
 
-function buscarPorId(id) {
-  const medicos = carregarDados();
-
-  return medicos.find(
-    (medico) => medico.id === Number(id)
-  );
+async function buscarTodos() {
+  const [rows] = await pool.query('SELECT * FROM medicos');
+  return rows;
 }
 
-function buscarTodos() {
-  return carregarDados();
-}
+async function atualizarMedico(medicoAtualizado) {
+  const id = Number(medicoAtualizado.id);
+  const nome = medicoAtualizado.nome.trim();
+  const email = medicoAtualizado.email.trim().toLowerCase();
+  const especialidade = medicoAtualizado.especialidade.trim();
+  const telefone = medicoAtualizado.telefone.trim();
 
-function atualizarMedico(medicoAtualizado) {
-  const medicos = carregarDados();
-
-  const indice = medicos.findIndex(
-    (medico) =>
-      medico.id === Number(medicoAtualizado.id)
+  const [result] = await pool.query(
+    'UPDATE medicos SET nome = ?, email = ?, especialidade = ?, telefone = ? WHERE id = ?',
+    [nome, email, especialidade, telefone, id]
   );
 
-  if (indice === -1) {
-    return null;
-  }
+  if (result.affectedRows === 0) return null;
 
-  medicos[indice] = {
-    id: medicos[indice].id,
-    nome: medicoAtualizado.nome.trim(),
-    email: medicoAtualizado.email
-      .trim()
-      .toLowerCase(),
-    especialidade:
-      medicoAtualizado.especialidade.trim(),
-    telefone: medicoAtualizado.telefone.trim()
-  };
-
-  salvarDados(medicos);
-
-  return medicos[indice];
+  return { id, nome, email, especialidade, telefone };
 }
 
-function excluirMedico(id) {
-  const medicos = carregarDados();
+async function excluirMedico(id) {
+  const medico = await buscarPorId(id);
+  if (!medico) return null;
 
-  const indice = medicos.findIndex(
-    (medico) => medico.id === Number(id)
-  );
-
-  if (indice === -1) {
-    return null;
-  }
-
-  const medicoExcluido = medicos[indice];
-
-  medicos.splice(indice, 1);
-  salvarDados(medicos);
-
-  return medicoExcluido;
+  await pool.query('DELETE FROM medicos WHERE id = ?', [Number(id)]);
+  return medico;
 }
 
 module.exports = {
@@ -139,7 +64,5 @@ module.exports = {
   buscarTodos,
   atualizarMedico,
   excluirMedico,
-  salvarDados,
-  carregarDados,
   validarDados
 };

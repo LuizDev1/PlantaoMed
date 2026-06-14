@@ -1,145 +1,79 @@
-const {
-  lerDados,
-  salvarDados: salvarArquivo
-} = require('../utils/fileManager');
-
-function carregarDados() {
-  const dados = lerDados();
-
-  if (!Array.isArray(dados.candidaturas)) {
-    return [];
-  }
-
-  return dados.candidaturas;
-}
-
-function salvarDados(candidaturas) {
-  const dados = lerDados();
-
-  dados.candidaturas = candidaturas;
-
-  salvarArquivo(dados);
-}
+const pool = require('../config/db');
 
 function validarDados(candidatura) {
-  const medicoIdValido =
-    Number.isInteger(Number(candidatura.medicoId)) &&
-    Number(candidatura.medicoId) > 0;
+  const medicoIdValido = Number.isInteger(Number(candidatura.medicoId)) && Number(candidatura.medicoId) > 0;
+  const plantaoIdValido = Number.isInteger(Number(candidatura.plantaoId)) && Number(candidatura.plantaoId) > 0;
+  const dataValida = typeof candidatura.dataCandidatura === 'string' && candidatura.dataCandidatura.trim() !== '';
+  const statusValido = typeof candidatura.status === 'string' && candidatura.status.trim() !== '';
 
-  const plantaoIdValido =
-    Number.isInteger(Number(candidatura.plantaoId)) &&
-    Number(candidatura.plantaoId) > 0;
-
-  const dataValida =
-    typeof candidatura.dataCandidatura === 'string' &&
-    candidatura.dataCandidatura.trim() !== '';
-
-  const statusValido =
-    typeof candidatura.status === 'string' &&
-    candidatura.status.trim() !== '';
-
-  return (
-    medicoIdValido &&
-    plantaoIdValido &&
-    dataValida &&
-    statusValido
-  );
+  return medicoIdValido && plantaoIdValido && dataValida && statusValido;
 }
 
-function criarCandidatura(candidatura) {
-  const candidaturas = carregarDados();
+async function criarCandidatura(candidatura) {
+  const medicoId = Number(candidatura.medicoId);
+  const plantaoId = Number(candidatura.plantaoId);
+  const dataCandidatura = candidatura.dataCandidatura.trim();
+  const status = candidatura.status.trim();
 
-  const novoId =
-    candidaturas.length > 0
-      ? Math.max(
-          ...candidaturas.map(
-            (candidaturaCadastrada) =>
-              Number(candidaturaCadastrada.id) || 0
-          )
-        ) + 1
-      : 1;
-
-  const novaCandidatura = {
-    id: novoId,
-    medicoId: Number(candidatura.medicoId),
-    plantaoId: Number(candidatura.plantaoId),
-    dataCandidatura:
-      candidatura.dataCandidatura.trim(),
-    status: candidatura.status.trim()
-  };
-
-  candidaturas.push(novaCandidatura);
-  salvarDados(candidaturas);
-
-  return novaCandidatura;
-}
-
-function buscarPorId(id) {
-  const candidaturas = carregarDados();
-
-  return candidaturas.find(
-    (candidatura) =>
-      candidatura.id === Number(id)
-  );
-}
-
-function buscarTodos() {
-  return carregarDados();
-}
-
-function atualizarCandidatura(
-  candidaturaAtualizada
-) {
-  const candidaturas = carregarDados();
-
-  const indice = candidaturas.findIndex(
-    (candidatura) =>
-      candidatura.id ===
-      Number(candidaturaAtualizada.id)
+  const [result] = await pool.query(
+    'INSERT INTO candidaturas (medicoId, plantaoId, dataCandidatura, status) VALUES (?, ?, ?, ?)',
+    [medicoId, plantaoId, dataCandidatura, status]
   );
 
-  if (indice === -1) {
-    return null;
+  return { id: result.insertId, medicoId, plantaoId, dataCandidatura, status };
+}
+
+async function buscarPorId(id) {
+  const [rows] = await pool.query('SELECT * FROM candidaturas WHERE id = ?', [Number(id)]);
+  if (rows.length === 0) return null;
+  const row = rows[0];
+  if (row.dataCandidatura instanceof Date) {
+      row.dataCandidatura = row.dataCandidatura.toISOString().split('T')[0];
   }
-
-  candidaturas[indice] = {
-    id: candidaturas[indice].id,
-    medicoId: Number(
-      candidaturaAtualizada.medicoId
-    ),
-    plantaoId: Number(
-      candidaturaAtualizada.plantaoId
-    ),
-    dataCandidatura:
-      candidaturaAtualizada.dataCandidatura.trim(),
-    status:
-      candidaturaAtualizada.status.trim()
-  };
-
-  salvarDados(candidaturas);
-
-  return candidaturas[indice];
+  return row;
 }
 
-function excluirCandidatura(id) {
-  const candidaturas = carregarDados();
+async function buscarTodos() {
+  const [rows] = await pool.query('SELECT * FROM candidaturas');
+  return rows.map(row => {
+    if (row.dataCandidatura instanceof Date) {
+        row.dataCandidatura = row.dataCandidatura.toISOString().split('T')[0];
+    }
+    return row;
+  });
+}
 
-  const indice = candidaturas.findIndex(
-    (candidatura) =>
-      candidatura.id === Number(id)
+async function atualizarCandidatura(candidaturaAtualizado) {
+  const id = Number(candidaturaAtualizado.id);
+  const medicoId = Number(candidaturaAtualizado.medicoId);
+  const plantaoId = Number(candidaturaAtualizado.plantaoId);
+  const dataCandidatura = candidaturaAtualizado.dataCandidatura.trim();
+  const status = candidaturaAtualizado.status.trim();
+
+  const [result] = await pool.query(
+    'UPDATE candidaturas SET medicoId = ?, plantaoId = ?, dataCandidatura = ?, status = ? WHERE id = ?',
+    [medicoId, plantaoId, dataCandidatura, status, id]
   );
 
-  if (indice === -1) {
-    return null;
-  }
+  if (result.affectedRows === 0) return null;
 
-  const candidaturaExcluida =
-    candidaturas[indice];
+  return { id, medicoId, plantaoId, dataCandidatura, status };
+}
 
-  candidaturas.splice(indice, 1);
-  salvarDados(candidaturas);
+async function atualizarMultiplasCandidaturas(plantaoId, statusAtual, novoStatus) {
+  // Atualiza em massa o status das candidaturas de um mesmo plantão.
+  await pool.query(
+    'UPDATE candidaturas SET status = ? WHERE plantaoId = ? AND status = ?',
+    [novoStatus, plantaoId, statusAtual]
+  );
+}
 
-  return candidaturaExcluida;
+async function excluirCandidatura(id) {
+  const candidatura = await buscarPorId(id);
+  if (!candidatura) return null;
+
+  await pool.query('DELETE FROM candidaturas WHERE id = ?', [Number(id)]);
+  return candidatura;
 }
 
 module.exports = {
@@ -148,7 +82,6 @@ module.exports = {
   buscarTodos,
   atualizarCandidatura,
   excluirCandidatura,
-  salvarDados,
-  carregarDados,
+  atualizarMultiplasCandidaturas,
   validarDados
 };
