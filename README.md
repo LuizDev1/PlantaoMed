@@ -2,7 +2,7 @@
 
 O **PlantãoMed** é uma aplicação web desenvolvida para auxiliar no gerenciamento de médicos, plantões hospitalares e candidaturas. O sistema permite que administradores cadastrem médicos e plantões, enquanto médicos autenticados podem se candidatar aos plantões disponíveis.
 
-O projeto foi desenvolvido com **React** no frontend e **Node.js com Express** no backend. Os dados são persistidos localmente em um arquivo JSON.
+O projeto foi desenvolvido com **React** no frontend e **Node.js com Express** no backend. Os dados agora são persistidos em um banco de dados **MySQL**, provido através de um contêiner **Docker**.
 
 ---
 
@@ -59,10 +59,10 @@ Executado pelo administrador.
 Ao cadastrar um médico, o sistema cria dois registros relacionados:
 
 ```text
-Medico
+Medicos
 └── id
 
-Usuario
+Usuarios
 └── medicoId
 ```
 
@@ -237,7 +237,8 @@ O administrador visualiza todas as candidaturas. O médico visualiza somente as 
 * CORS;
 * Nodemon;
 * JavaScript;
-* Arquivo JSON para persistência.
+* MySQL (banco de dados relacional);
+* Docker e Docker Compose (orquestração do banco de dados).
 
 ---
 
@@ -250,6 +251,10 @@ PlantaoMed/
 │
 ├── backend/
 │   ├── src/
+│   │   ├── config/
+│   │   │   ├── db.js
+│   │   │   └── initDb.js
+│   │   │
 │   │   ├── controllers/
 │   │   │   ├── authController.js
 │   │   │   ├── medicoController.js
@@ -271,15 +276,12 @@ PlantaoMed/
 │   │   │   ├── candidaturaRoutes.js
 │   │   │   └── relatorioRoutes.js
 │   │   │
-│   │   ├── data/
-│   │   │   └── dados.json
-│   │   │
-│   │   ├── utils/
-│   │   │   └── fileManager.js
-│   │   │
 │   │   └── server.js
 │   │
+│   ├── .env
 │   └── package.json
+│
+├── docker-compose.yml
 │
 └── frontend/
     ├── src/
@@ -366,7 +368,8 @@ Antes de iniciar, é necessário possuir:
 
 * Node.js;
 * npm;
-* Git.
+* Git;
+* Docker e Docker Compose (para subir o banco de dados).
 
 ### Clonar o repositório
 
@@ -375,12 +378,23 @@ git clone https://github.com/LuizDev1/PlantaoMed.git
 cd PlantaoMed
 ```
 
+### Inicializar o Banco de Dados (MySQL)
+
+Na raiz do projeto, inicie o container Docker:
+
+```bash
+docker-compose up -d
+```
+O banco de dados estará acessível localmente na porta `3306`. A aplicação criará automaticamente as tabelas e a estrutura do banco na primeira execução do backend.
+
 ### Instalar o backend
 
 ```bash
 cd backend
 npm install
 ```
+
+*(Opcional) Edite o arquivo `.env` dentro da pasta `backend` se precisar modificar as credenciais do banco.*
 
 ### Executar o backend
 
@@ -421,50 +435,30 @@ http://localhost:5173
 
 ## Usuários de teste
 
-As contas de teste podem ser consultadas ou alteradas em:
+Nesta versão com MySQL, as tabelas estarão inicialmente vazias. Para efetuar os primeiros testes de login como administrador, **é necessário inserir um usuário administrador manualmente** na tabela `usuarios` do banco de dados recém-criado, ou cadastrar um via uma IDE de Banco de Dados.
 
-```text
-backend/src/data/dados.json
+Exemplo de query SQL para criar um administrador inicial:
+```sql
+INSERT INTO usuarios (nome, email, senha, tipo) 
+VALUES ('Administrador', 'admin@plantaomed.com', '123456', 'administrador');
 ```
 
-Exemplo de administrador:
-
+Exemplo de login inicial esperado na aplicação:
 ```text
 E-mail: admin@plantaomed.com
 Senha: 123456
 ```
 
-Exemplo de médico:
-
-```text
-E-mail: joao@plantaomed.com
-Senha: 123456
-```
-
-Novos usuários do tipo médico são criados automaticamente quando o administrador cadastra um médico.
+Novos usuários do tipo médico serão criados automaticamente através do sistema quando o administrador cadastrar um novo médico.
 
 ---
 
 ## Persistência
 
-Os dados são armazenados no arquivo:
+Os dados são armazenados localmente utilizando o banco de dados relacional **MySQL**.
+A comunicação com o banco é realizada usando a biblioteca `mysql2/promise` do Node.js, com queries SQL nativas assíncronas espalhadas pelos arquivos da camada de Models.
 
-```text
-backend/src/data/dados.json
-```
-
-O arquivo contém as coleções:
-
-```json
-{
-  "usuarios": [],
-  "medicos": [],
-  "plantoes": [],
-  "candidaturas": []
-}
-```
-
-O módulo `fileManager.js` centraliza a leitura e a escrita do arquivo.
+O pool de conexões é configurado no arquivo `backend/src/config/db.js` utilizando os parâmetros providos pelas variáveis de ambiente (`.env`).
 
 ---
 
@@ -517,6 +511,7 @@ feature/plantoes
 feature/candidaturas
 feature/relatorios
 feature/login-medicos
+feature/implementacao-mysql
 ```
 
 A branch `main` contém a versão estável. A branch `develop` é utilizada para integração das funcionalidades.
@@ -529,20 +524,16 @@ Este projeto foi desenvolvido para fins acadêmicos.
 
 Na implementação atual:
 
-* as senhas são armazenadas no arquivo JSON;
 * não há criptografia de senha;
 * não há autenticação por JWT;
 * a proteção principal de rotas é feita no frontend;
-* a persistência utiliza arquivo local.
 
 Em uma versão destinada à produção, seria necessário implementar:
 
 * criptografia de senhas com bcrypt;
 * autenticação com JWT ou sessão no servidor;
 * middleware de autorização;
-* banco de dados;
-* variáveis de ambiente;
-* validações adicionais;
+* validações adicionais mais rigorosas de input;
 * HTTPS;
 * recuperação e alteração segura de senha.
 
@@ -575,4 +566,4 @@ frontend/dist
 
 ---
 
-Desenvolvido como projeto acadêmico· UCB · 2026
+Desenvolvido como projeto acadêmico · UCB · 2026
