@@ -1,5 +1,7 @@
 const plantaoModel = require('../models/plantaoModel');
 
+const candidaturaModel = require('../models/candidaturaModel');
+
 function listarPlantoes(req, res) {
   try {
     const plantoes = plantaoModel.buscarTodos();
@@ -135,21 +137,43 @@ function editarPlantao(req, res) {
 
 function excluirPlantao(req, res) {
   try {
-    const plantaoExcluido =
-      plantaoModel.excluirPlantao(req.params.id);
+    const id = Number(req.params.id);
 
-    if (!plantaoExcluido) {
+    const plantaoExistente =
+      plantaoModel.buscarPorId(id);
+
+    if (!plantaoExistente) {
       return res.status(404).json({
         erro: 'Plantão não encontrado'
       });
     }
 
+    const possuiCandidaturas =
+      candidaturaModel.buscarTodos().some(
+        (candidatura) =>
+          Number(candidatura.plantaoId) === id
+      );
+
+    if (possuiCandidaturas) {
+      return res.status(409).json({
+        erro:
+          'Não é possível excluir este plantão, pois existem candidaturas vinculadas a ele'
+      });
+    }
+
+    const plantaoExcluido =
+      plantaoModel.excluirPlantao(id);
+
     return res.status(200).json({
-      mensagem: 'Plantão excluído com sucesso',
+      mensagem:
+        'Plantão excluído com sucesso',
       plantao: plantaoExcluido
     });
   } catch (erro) {
-    console.error('Erro ao excluir plantão:', erro);
+    console.error(
+      'Erro ao excluir plantão:',
+      erro
+    );
 
     return res.status(500).json({
       erro: 'Erro interno do servidor'

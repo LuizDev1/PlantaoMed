@@ -33,16 +33,6 @@ export default function App() {
         />
 
         <Route
-          path="/medicos"
-          element={<Medicos />}
-        />
-
-        <Route
-          path="/plantoes"
-          element={<Plantoes />}
-        />
-
-        <Route
           path="/candidaturas"
           element={<Candidaturas />}
         />
@@ -50,6 +40,28 @@ export default function App() {
         <Route
           path="/relatorio"
           element={<Relatorio />}
+        />
+
+        <Route
+          path="/medicos"
+          element={
+            <ProtectedRoute
+              tiposPermitidos={['administrador']}
+            >
+              <Medicos />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/plantoes"
+          element={
+            <ProtectedRoute
+              tiposPermitidos={['administrador']}
+            >
+              <Plantoes />
+            </ProtectedRoute>
+          }
         />
       </Route>
 

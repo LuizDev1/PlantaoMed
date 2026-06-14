@@ -1,16 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+
 import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
   const { usuario } = useAuth();
+
+  const usuarioAdministrador =
+    usuario?.tipo === 'administrador';
 
   const estiloCard = {
     border: '1px solid #cccccc',
     borderRadius: '8px',
     padding: '20px',
     textDecoration: 'none',
-    color: '#222222'
+    color: '#222222',
+    backgroundColor: '#ffffff'
   };
 
   return (
@@ -22,36 +27,74 @@ export default function Dashboard() {
       </p>
 
       <p>
-        Perfil: {usuario?.tipo}
+        Perfil:{' '}
+        <strong>
+          {usuarioAdministrador
+            ? 'Administrador'
+            : 'Médico'}
+        </strong>
       </p>
 
       <div
         style={{
           display: 'grid',
           gridTemplateColumns:
-            'repeat(auto-fit, minmax(200px, 1fr))',
+            'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '16px',
           marginTop: '24px'
         }}
       >
-        <Link to="/medicos" style={estiloCard}>
-          <h2>Médicos</h2>
-          <p>Gerenciar médicos cadastrados.</p>
-        </Link>
+        {usuarioAdministrador && (
+          <>
+            <Link
+              to="/medicos"
+              style={estiloCard}
+            >
+              <h2>Médicos</h2>
 
-        <Link to="/plantoes" style={estiloCard}>
-          <h2>Plantões</h2>
-          <p>Gerenciar plantões disponíveis.</p>
-        </Link>
+              <p>
+                Cadastrar, listar, editar e excluir
+                médicos.
+              </p>
+            </Link>
 
-        <Link to="/candidaturas" style={estiloCard}>
+            <Link
+              to="/plantoes"
+              style={estiloCard}
+            >
+              <h2>Plantões</h2>
+
+              <p>
+                Cadastrar, listar, editar e excluir
+                plantões.
+              </p>
+            </Link>
+          </>
+        )}
+
+        <Link
+          to="/candidaturas"
+          style={estiloCard}
+        >
           <h2>Candidaturas</h2>
-          <p>Acompanhar candidaturas aos plantões.</p>
+
+          <p>
+            {usuarioAdministrador
+              ? 'Visualizar, aprovar e rejeitar candidaturas.'
+              : 'Cadastrar e acompanhar suas candidaturas.'}
+          </p>
         </Link>
 
-        <Link to="/relatorio" style={estiloCard}>
+        <Link
+          to="/relatorio"
+          style={estiloCard}
+        >
           <h2>Relatório</h2>
-          <p>Visualizar o relatório de candidaturas.</p>
+
+          <p>
+            Visualizar o relatório de candidaturas,
+            médicos e plantões.
+          </p>
         </Link>
       </div>
     </div>

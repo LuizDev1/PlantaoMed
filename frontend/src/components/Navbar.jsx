@@ -1,10 +1,17 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import {
+  NavLink,
+  useNavigate
+} from 'react-router-dom';
+
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
+
+  const usuarioAdministrador =
+    usuario?.tipo === 'administrador';
 
   function handleLogout() {
     logout();
@@ -34,9 +41,7 @@ export default function Navbar() {
         gap: '20px'
       }}
     >
-      <div>
-        <strong>PlantãoMed</strong>
-      </div>
+      <strong>PlantãoMed</strong>
 
       <div
         style={{
@@ -45,23 +50,42 @@ export default function Navbar() {
           alignItems: 'center'
         }}
       >
-        <NavLink to="/dashboard" style={estiloLink}>
+        <NavLink
+          to="/dashboard"
+          style={estiloLink}
+        >
           Dashboard
         </NavLink>
 
-        <NavLink to="/medicos" style={estiloLink}>
-          Médicos
-        </NavLink>
+        {usuarioAdministrador && (
+          <>
+            <NavLink
+              to="/medicos"
+              style={estiloLink}
+            >
+              Médicos
+            </NavLink>
 
-        <NavLink to="/plantoes" style={estiloLink}>
-          Plantões
-        </NavLink>
+            <NavLink
+              to="/plantoes"
+              style={estiloLink}
+            >
+              Plantões
+            </NavLink>
+          </>
+        )}
 
-        <NavLink to="/candidaturas" style={estiloLink}>
+        <NavLink
+          to="/candidaturas"
+          style={estiloLink}
+        >
           Candidaturas
         </NavLink>
 
-        <NavLink to="/relatorio" style={estiloLink}>
+        <NavLink
+          to="/relatorio"
+          style={estiloLink}
+        >
           Relatório
         </NavLink>
       </div>
@@ -75,7 +99,10 @@ export default function Navbar() {
       >
         <span>{usuario?.nome}</span>
 
-        <button type="button" onClick={handleLogout}>
+        <button
+          type="button"
+          onClick={handleLogout}
+        >
           Sair
         </button>
       </div>
