@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 
 const authRoutes = require('./routes/authRoutes');
+const medicoRoutes = require('./routes/medicoRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,6 +17,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/medicos', medicoRoutes);
 
 app.use((req, res) => {
   return res.status(404).json({
@@ -24,5 +26,7 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor executando em http://localhost:${PORT}`);
+  console.log(
+    `Servidor executando em http://localhost:${PORT}`
+  );
 });
