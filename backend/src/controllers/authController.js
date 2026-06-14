@@ -18,15 +18,16 @@ function login(req, res) {
       });
     }
 
-    return res.status(200).json({
-      mensagem: 'Login realizado com sucesso',
-      usuario: {
-        id: usuario.id,
-        nome: usuario.nome,
-        email: usuario.email,
-        tipo: usuario.tipo
-      }
-    });
+  return res.status(200).json({
+    mensagem: 'Login realizado com sucesso',
+    usuario: {
+      id: usuario.id,
+      nome: usuario.nome,
+      email: usuario.email,
+      tipo: usuario.tipo,
+      medicoId: usuario.medicoId || null
+  }
+});
   } catch (erro) {
     console.error('Erro ao realizar login:', erro);
 
