@@ -1,4 +1,8 @@
 const medicoModel = require('../models/medicoModel');
+const usuarioModel = require('../models/usuarioModel');
+const candidaturaModel = require(
+  '../models/candidaturaModel'
+);
 
 function normalizarTelefone(telefone) {
   return String(telefone || '').replace(/\D/g, '');
@@ -36,6 +40,14 @@ function cadastrarMedico(req, res) {
       )
     };
 
+    const senha = String(
+      req.body.senha || ''
+    );
+
+    const confirmarSenha = String(
+      req.body.confirmarSenha || ''
+    );
+
     if (!medicoModel.validarDados(medico)) {
       return res.status(400).json({
         erro: 'Preencha todos os campos corretamente'
@@ -48,6 +60,18 @@ function cadastrarMedico(req, res) {
     ) {
       return res.status(400).json({
         erro: 'O telefone deve conter 10 ou 11 números'
+      });
+    }
+
+    if (senha.length < 6) {
+      return res.status(400).json({
+        erro: 'A senha deve possuir pelo menos 6 caracteres'
+      });
+    }
+
+    if (senha !== confirmarSenha) {
+      return res.status(400).json({
+        erro: 'A confirmação da senha está diferente'
       });
     }
 
@@ -78,13 +102,48 @@ function cadastrarMedico(req, res) {
       });
     }
 
+    const usuarioComMesmoEmail =
+      usuarioModel.buscarPorEmail(medico.email);
+
+    if (usuarioComMesmoEmail) {
+      return res.status(409).json({
+        erro: 'Este e-mail já está sendo usado por um usuário'
+      });
+    }
+
     const novoMedico =
       medicoModel.criarMedico(medico);
 
-    return res.status(201).json({
-      mensagem: 'Médico cadastrado com sucesso',
-      medico: novoMedico
-    });
+    try {
+      const novoUsuario =
+        usuarioModel.criarUsuarioMedico({
+          nome: novoMedico.nome,
+          email: novoMedico.email,
+          senha,
+          medicoId: novoMedico.id
+        });
+
+      return res.status(201).json({
+        mensagem:
+          'Médico e usuário cadastrados com sucesso',
+
+        medico: novoMedico,
+
+        usuario: {
+          id: novoUsuario.id,
+          nome: novoUsuario.nome,
+          email: novoUsuario.email,
+          tipo: novoUsuario.tipo,
+          medicoId: novoUsuario.medicoId
+        }
+      });
+    } catch (erroUsuario) {
+      // Desfaz o cadastro do médico caso a criação
+      // do usuário apresente algum erro.
+      medicoModel.excluirMedico(novoMedico.id);
+
+      throw erroUsuario;
+    }
   } catch (erro) {
     console.error('Erro ao cadastrar médico:', erro);
 
@@ -178,14 +237,103 @@ function editarMedico(req, res) {
       });
     }
 
+    const usuarioVinculado =
+      usuarioModel.buscarPorMedicoId(id);
+
+    const usuarioComMesmoEmail =
+      usuarioModel.buscarPorEmail(
+        medicoAtualizado.email
+      );
+
+    if (
+      usuarioComMesmoEmail &&
+      Number(usuarioComMesmoEmail.medicoId) !== id
+    ) {
+      return res.status(409).json({
+        erro: 'Este e-mail já está sendo usado por outro usuário'
+      });
+    }
+
+    const senha = String(
+      req.body.senha || ''
+    );
+
+    const confirmarSenha = String(
+      req.body.confirmarSenha || ''
+    );
+
+    const desejaAlterarSenha =
+      senha !== '' || confirmarSenha !== '';
+
+    if (desejaAlterarSenha) {
+      if (senha.length < 6) {
+        return res.status(400).json({
+          erro:
+            'A nova senha deve possuir pelo menos 6 caracteres'
+        });
+      }
+
+      if (senha !== confirmarSenha) {
+        return res.status(400).json({
+          erro:
+            'A confirmação da nova senha está diferente'
+        });
+      }
+    }
+
+    /*
+     * Médicos cadastrados antes desta funcionalidade
+     * podem não possuir usuário vinculado.
+     */
+    if (!usuarioVinculado && !desejaAlterarSenha) {
+      return res.status(400).json({
+        erro:
+          'Este médico ainda não possui acesso. Informe uma senha para criar o usuário'
+      });
+    }
+
     const resultado =
       medicoModel.atualizarMedico(
         medicoAtualizado
       );
 
+    let usuarioAtualizado;
+
+    if (usuarioVinculado) {
+      usuarioAtualizado =
+        usuarioModel.atualizarUsuarioPorMedicoId(
+          id,
+          {
+            nome: medicoAtualizado.nome,
+            email: medicoAtualizado.email,
+            senha: desejaAlterarSenha
+              ? senha
+              : undefined
+          }
+        );
+    } else {
+      usuarioAtualizado =
+        usuarioModel.criarUsuarioMedico({
+          nome: medicoAtualizado.nome,
+          email: medicoAtualizado.email,
+          senha,
+          medicoId: id
+        });
+    }
+
     return res.status(200).json({
-      mensagem: 'Médico atualizado com sucesso',
-      medico: resultado
+      mensagem:
+        'Médico e usuário atualizados com sucesso',
+
+      medico: resultado,
+
+      usuario: {
+        id: usuarioAtualizado.id,
+        nome: usuarioAtualizado.nome,
+        email: usuarioAtualizado.email,
+        tipo: usuarioAtualizado.tipo,
+        medicoId: usuarioAtualizado.medicoId
+      }
     });
   } catch (erro) {
     console.error('Erro ao editar médico:', erro);
@@ -198,17 +346,38 @@ function editarMedico(req, res) {
 
 function excluirMedico(req, res) {
   try {
-    const medicoExcluido =
-      medicoModel.excluirMedico(req.params.id);
+    const id = Number(req.params.id);
 
-    if (!medicoExcluido) {
+    const medicoExistente =
+      medicoModel.buscarPorId(id);
+
+    if (!medicoExistente) {
       return res.status(404).json({
         erro: 'Médico não encontrado'
       });
     }
 
+    const possuiCandidaturas =
+      candidaturaModel.buscarTodos().some(
+        (candidatura) =>
+          Number(candidatura.medicoId) === id
+      );
+
+    if (possuiCandidaturas) {
+      return res.status(409).json({
+        erro:
+          'Não é possível excluir este médico, pois existem candidaturas vinculadas a ele'
+      });
+    }
+
+    const medicoExcluido =
+      medicoModel.excluirMedico(id);
+
+    usuarioModel.excluirUsuarioPorMedicoId(id);
+
     return res.status(200).json({
-      mensagem: 'Médico excluído com sucesso',
+      mensagem:
+        'Médico e usuário excluídos com sucesso',
       medico: medicoExcluido
     });
   } catch (erro) {

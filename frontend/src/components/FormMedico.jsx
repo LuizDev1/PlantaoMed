@@ -4,7 +4,9 @@ const estadoInicial = {
   nome: '',
   email: '',
   especialidade: '',
-  telefone: ''
+  telefone: '',
+  senha: '',
+  confirmarSenha: ''
 };
 
 export default function FormMedico({
@@ -15,15 +17,22 @@ export default function FormMedico({
   carregando
 }) {
   const [medico, setMedico] = useState(estadoInicial);
+  const [erroSenha, setErroSenha] = useState('');
 
   useEffect(() => {
+    setErroSenha('');
+
     if (medicoSelecionado) {
       setMedico({
         nome: medicoSelecionado.nome || '',
         email: medicoSelecionado.email || '',
         especialidade:
           medicoSelecionado.especialidade || '',
-        telefone: medicoSelecionado.telefone || ''
+        telefone: medicoSelecionado.telefone || '',
+
+        // A senha existente nunca deve aparecer no formulário.
+        senha: '',
+        confirmarSenha: ''
       });
     } else {
       setMedico(estadoInicial);
@@ -37,10 +46,50 @@ export default function FormMedico({
       ...dadosAtuais,
       [name]: value
     }));
+
+    if (
+      name === 'senha' ||
+      name === 'confirmarSenha'
+    ) {
+      setErroSenha('');
+    }
+  }
+
+  function validarSenha() {
+    const estaEditando = Boolean(medicoSelecionado);
+
+    const desejaAlterarSenha =
+      medico.senha !== '' ||
+      medico.confirmarSenha !== '';
+
+    if (!estaEditando || desejaAlterarSenha) {
+      if (medico.senha.length < 6) {
+        setErroSenha(
+          'A senha deve possuir pelo menos 6 caracteres'
+        );
+
+        return false;
+      }
+
+      if (medico.senha !== medico.confirmarSenha) {
+        setErroSenha(
+          'A senha e a confirmação estão diferentes'
+        );
+
+        return false;
+      }
+    }
+
+    return true;
   }
 
   async function enviarFormulario(evento) {
     evento.preventDefault();
+    setErroSenha('');
+
+    if (!validarSenha()) {
+      return;
+    }
 
     let operacaoRealizada;
 
@@ -56,11 +105,13 @@ export default function FormMedico({
 
     if (operacaoRealizada) {
       setMedico(estadoInicial);
+      setErroSenha('');
     }
   }
 
   function cancelar() {
     setMedico(estadoInicial);
+    setErroSenha('');
     cancelarEdicao();
   }
 
@@ -80,10 +131,8 @@ export default function FormMedico({
           : 'Cadastrar Médico'}
       </h2>
 
-      <div style={{ marginBottom: '12px' }}>
+      <div style={estiloGrupo}>
         <label htmlFor="nome">Nome</label>
-
-        <br />
 
         <input
           id="nome"
@@ -93,18 +142,12 @@ export default function FormMedico({
           onChange={alterarCampo}
           placeholder="Digite o nome do médico"
           required
-          style={{
-            width: '100%',
-            padding: '8px',
-            boxSizing: 'border-box'
-          }}
+          style={estiloCampo}
         />
       </div>
 
-      <div style={{ marginBottom: '12px' }}>
+      <div style={estiloGrupo}>
         <label htmlFor="email">E-mail</label>
-
-        <br />
 
         <input
           id="email"
@@ -114,20 +157,14 @@ export default function FormMedico({
           onChange={alterarCampo}
           placeholder="Digite o e-mail"
           required
-          style={{
-            width: '100%',
-            padding: '8px',
-            boxSizing: 'border-box'
-          }}
+          style={estiloCampo}
         />
       </div>
 
-      <div style={{ marginBottom: '12px' }}>
+      <div style={estiloGrupo}>
         <label htmlFor="especialidade">
           Especialidade
         </label>
-
-        <br />
 
         <input
           id="especialidade"
@@ -137,18 +174,12 @@ export default function FormMedico({
           onChange={alterarCampo}
           placeholder="Digite a especialidade"
           required
-          style={{
-            width: '100%',
-            padding: '8px',
-            boxSizing: 'border-box'
-          }}
+          style={estiloCampo}
         />
       </div>
 
-      <div style={{ marginBottom: '12px' }}>
+      <div style={estiloGrupo}>
         <label htmlFor="telefone">Telefone</label>
-
-        <br />
 
         <input
           id="telefone"
@@ -158,13 +189,71 @@ export default function FormMedico({
           onChange={alterarCampo}
           placeholder="Digite o telefone"
           required
-          style={{
-            width: '100%',
-            padding: '8px',
-            boxSizing: 'border-box'
-          }}
+          style={estiloCampo}
         />
       </div>
+
+      <div style={estiloGrupo}>
+        <label htmlFor="senha">
+          {medicoSelecionado
+            ? 'Nova senha'
+            : 'Senha inicial'}
+        </label>
+
+        <input
+          id="senha"
+          name="senha"
+          type="password"
+          value={medico.senha}
+          onChange={alterarCampo}
+          placeholder={
+            medicoSelecionado
+              ? 'Deixe vazio para manter a senha'
+              : 'Digite a senha inicial'
+          }
+          minLength={6}
+          required={!medicoSelecionado}
+          autoComplete="new-password"
+          style={estiloCampo}
+        />
+      </div>
+
+      <div style={estiloGrupo}>
+        <label htmlFor="confirmarSenha">
+          Confirmar senha
+        </label>
+
+        <input
+          id="confirmarSenha"
+          name="confirmarSenha"
+          type="password"
+          value={medico.confirmarSenha}
+          onChange={alterarCampo}
+          placeholder="Digite a senha novamente"
+          minLength={6}
+          required={!medicoSelecionado}
+          autoComplete="new-password"
+          style={estiloCampo}
+        />
+      </div>
+
+      {medicoSelecionado && (
+        <p
+          style={{
+            color: '#555555',
+            fontSize: '14px'
+          }}
+        >
+          Deixe os campos de senha vazios para manter a
+          senha atual.
+        </p>
+      )}
+
+      {erroSenha && (
+        <p style={{ color: 'red' }}>
+          {erroSenha}
+        </p>
+      )}
 
       <button
         type="submit"
@@ -174,7 +263,7 @@ export default function FormMedico({
           ? 'Salvando...'
           : medicoSelecionado
             ? 'Salvar alterações'
-            : 'Cadastrar'}
+            : 'Cadastrar médico e usuário'}
       </button>
 
       {medicoSelecionado && (
@@ -190,3 +279,16 @@ export default function FormMedico({
     </form>
   );
 }
+
+const estiloGrupo = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  marginBottom: '12px'
+};
+
+const estiloCampo = {
+  width: '100%',
+  padding: '8px',
+  boxSizing: 'border-box'
+};

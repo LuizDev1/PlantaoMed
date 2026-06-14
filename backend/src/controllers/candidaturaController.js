@@ -10,12 +10,6 @@ const plantaoModel = require(
   '../models/plantaoModel'
 );
 
-const STATUS_VALIDOS = [
-  'Pendente',
-  'Aprovada',
-  'Rejeitada'
-];
-
 function listarCandidaturas(req, res) {
   try {
     const candidaturas =
@@ -49,9 +43,7 @@ function cadastrarCandidatura(req, res) {
     };
 
     if (
-      !candidaturaModel.validarDados(
-        candidatura
-      )
+      !candidaturaModel.validarDados(candidatura)
     ) {
       return res.status(400).json({
         erro: 'Dados da candidatura inválidos'
@@ -132,58 +124,32 @@ function editarCandidatura(req, res) {
       });
     }
 
-    const medicoId =
-      req.body.medicoId !== undefined
-        ? Number(req.body.medicoId)
-        : candidaturaExistente.medicoId;
+    if (
+      candidaturaExistente.status !== 'Pendente'
+    ) {
+      return res.status(409).json({
+        erro:
+          'Esta candidatura já foi analisada e não pode ser alterada'
+      });
+    }
 
-    const plantaoId =
-      req.body.plantaoId !== undefined
-        ? Number(req.body.plantaoId)
-        : candidaturaExistente.plantaoId;
-
-    const status =
-      req.body.status !== undefined
-        ? String(req.body.status).trim()
-        : candidaturaExistente.status;
-
-    const candidaturaAtualizada = {
-      id: candidaturaExistente.id,
-      medicoId,
-      plantaoId,
-      dataCandidatura:
-        candidaturaExistente.dataCandidatura,
-      status
-    };
+    const status = String(
+      req.body.status || ''
+    ).trim();
 
     if (
-      !candidaturaModel.validarDados(
-        candidaturaAtualizada
-      )
+      status !== 'Aprovada' &&
+      status !== 'Rejeitada'
     ) {
       return res.status(400).json({
-        erro: 'Dados da candidatura inválidos'
-      });
-    }
-
-    if (!STATUS_VALIDOS.includes(status)) {
-      return res.status(400).json({
         erro:
-          'O status deve ser Pendente, Aprovada ou Rejeitada'
+          'O status deve ser Aprovada ou Rejeitada'
       });
     }
 
-    const medico =
-      medicoModel.buscarPorId(medicoId);
-
-    if (!medico) {
-      return res.status(404).json({
-        erro: 'Médico não encontrado'
-      });
-    }
-
-    const plantao =
-      plantaoModel.buscarPorId(plantaoId);
+    const plantao = plantaoModel.buscarPorId(
+      candidaturaExistente.plantaoId
+    );
 
     if (!plantao) {
       return res.status(404).json({
@@ -191,30 +157,94 @@ function editarCandidatura(req, res) {
       });
     }
 
-    const candidaturaDuplicada =
-      candidaturaModel.buscarTodos().some(
-        (item) =>
-          item.id !== candidaturaExistente.id &&
-          Number(item.medicoId) === medicoId &&
-          Number(item.plantaoId) === plantaoId
-      );
+    if (status === 'Rejeitada') {
+      const candidaturaAtualizada = {
+        ...candidaturaExistente,
+        status: 'Rejeitada'
+      };
 
-    if (candidaturaDuplicada) {
-      return res.status(409).json({
-        erro:
-          'Este médico já possui outra candidatura para este plantão'
+      const resultado =
+        candidaturaModel.atualizarCandidatura(
+          candidaturaAtualizada
+        );
+
+      return res.status(200).json({
+        mensagem:
+          'Candidatura rejeitada com sucesso',
+        candidatura: resultado
       });
     }
 
-    const resultado =
-      candidaturaModel.atualizarCandidatura(
-        candidaturaAtualizada
+    const candidaturas =
+      candidaturaModel.buscarTodos();
+
+    const outraCandidaturaAprovada =
+      candidaturas.some(
+        (candidatura) =>
+          candidatura.id !==
+            candidaturaExistente.id &&
+          Number(candidatura.plantaoId) ===
+            Number(
+              candidaturaExistente.plantaoId
+            ) &&
+          candidatura.status === 'Aprovada'
       );
+
+    if (outraCandidaturaAprovada) {
+      return res.status(409).json({
+        erro:
+          'Este plantão já possui um médico aprovado'
+      });
+    }
+
+    const candidaturasAtualizadas =
+      candidaturas.map((candidatura) => {
+        const mesmoPlantao =
+          Number(candidatura.plantaoId) ===
+          Number(
+            candidaturaExistente.plantaoId
+          );
+
+        if (!mesmoPlantao) {
+          return candidatura;
+        }
+
+        if (
+          candidatura.id ===
+          candidaturaExistente.id
+        ) {
+          return {
+            ...candidatura,
+            status: 'Aprovada'
+          };
+        }
+
+        if (candidatura.status === 'Pendente') {
+          return {
+            ...candidatura,
+            status: 'Rejeitada'
+          };
+        }
+
+        return candidatura;
+      });
+
+    candidaturaModel.salvarDados(
+      candidaturasAtualizadas
+    );
+
+    plantaoModel.atualizarPlantao({
+      ...plantao,
+      status: 'Preenchido'
+    });
+
+    const candidaturaAprovada =
+      candidaturaModel.buscarPorId(id);
 
     return res.status(200).json({
       mensagem:
-        'Candidatura atualizada com sucesso',
-      candidatura: resultado
+        'Candidatura aprovada e plantão preenchido com sucesso',
+      candidatura: candidaturaAprovada
     });
   } catch (erro) {
     console.error(
@@ -230,20 +260,32 @@ function editarCandidatura(req, res) {
 
 function excluirCandidatura(req, res) {
   try {
-    const candidaturaExcluida =
-      candidaturaModel.excluirCandidatura(
-        req.params.id
-      );
+    const id = Number(req.params.id);
 
-    if (!candidaturaExcluida) {
+    const candidaturaExistente =
+      candidaturaModel.buscarPorId(id);
+
+    if (!candidaturaExistente) {
       return res.status(404).json({
         erro: 'Candidatura não encontrada'
       });
     }
 
+    if (
+      candidaturaExistente.status !== 'Pendente'
+    ) {
+      return res.status(409).json({
+        erro:
+          'Somente candidaturas pendentes podem ser canceladas'
+      });
+    }
+
+    const candidaturaExcluida =
+      candidaturaModel.excluirCandidatura(id);
+
     return res.status(200).json({
       mensagem:
-        'Candidatura excluída com sucesso',
+        'Candidatura cancelada com sucesso',
       candidatura: candidaturaExcluida
     });
   } catch (erro) {
