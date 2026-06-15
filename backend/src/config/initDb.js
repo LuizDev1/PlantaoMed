@@ -47,6 +47,12 @@ async function initDb() {
       )
     `);
 
+    // Inserir o administrador padrão se não existir
+    await conexao.query(`
+      INSERT IGNORE INTO usuarios (nome, email, senha, tipo) 
+      VALUES ('Administrador', 'admin@plantaomed.com', '123456', 'administrador')
+    `);
+
     console.log('Tabelas inicializadas com sucesso.');
     conexao.release();
   } catch (erro) {

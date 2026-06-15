@@ -435,13 +435,7 @@ http://localhost:5173
 
 ## Usuários de teste
 
-Nesta versão com MySQL, as tabelas estarão inicialmente vazias. Para efetuar os primeiros testes de login como administrador, **é necessário inserir um usuário administrador manualmente** na tabela `usuarios` do banco de dados recém-criado, ou cadastrar um via uma IDE de Banco de Dados.
-
-Exemplo de query SQL para criar um administrador inicial:
-```sql
-INSERT INTO usuarios (nome, email, senha, tipo) 
-VALUES ('Administrador', 'admin@plantaomed.com', '123456', 'administrador');
-```
+Nesta versão com MySQL, as tabelas estarão inicialmente vazias na primeira execução. No entanto, o backend já está configurado para **criar automaticamente um usuário administrador padrão** assim que for iniciado, dispensando qualquer inserção manual.
 
 Exemplo de login inicial esperado na aplicação:
 ```text
