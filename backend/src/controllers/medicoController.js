@@ -8,9 +8,9 @@ function normalizarTelefone(telefone) {
   return String(telefone || '').replace(/\D/g, '');
 }
 
-function listarMedicos(req, res) {
+async function listarMedicos(req, res) {
   try {
-    const medicos = medicoModel.buscarTodos();
+    const medicos = await medicoModel.buscarTodos();
 
     return res.status(200).json(medicos);
   } catch (erro) {
@@ -22,7 +22,7 @@ function listarMedicos(req, res) {
   }
 }
 
-function cadastrarMedico(req, res) {
+async function cadastrarMedico(req, res) {
   try {
     const medico = {
       nome: String(req.body.nome || '').trim(),
@@ -75,7 +75,7 @@ function cadastrarMedico(req, res) {
       });
     }
 
-    const medicos = medicoModel.buscarTodos();
+    const medicos = await medicoModel.buscarTodos();
 
     const emailJaCadastrado = medicos.some(
       (medicoCadastrado) =>
@@ -103,7 +103,7 @@ function cadastrarMedico(req, res) {
     }
 
     const usuarioComMesmoEmail =
-      usuarioModel.buscarPorEmail(medico.email);
+      await usuarioModel.buscarPorEmail(medico.email);
 
     if (usuarioComMesmoEmail) {
       return res.status(409).json({
@@ -112,11 +112,11 @@ function cadastrarMedico(req, res) {
     }
 
     const novoMedico =
-      medicoModel.criarMedico(medico);
+      await medicoModel.criarMedico(medico);
 
     try {
       const novoUsuario =
-        usuarioModel.criarUsuarioMedico({
+        await usuarioModel.criarUsuarioMedico({
           nome: novoMedico.nome,
           email: novoMedico.email,
           senha,
@@ -140,7 +140,7 @@ function cadastrarMedico(req, res) {
     } catch (erroUsuario) {
       // Desfaz o cadastro do médico caso a criação
       // do usuário apresente algum erro.
-      medicoModel.excluirMedico(novoMedico.id);
+      await medicoModel.excluirMedico(novoMedico.id);
 
       throw erroUsuario;
     }
@@ -153,12 +153,12 @@ function cadastrarMedico(req, res) {
   }
 }
 
-function editarMedico(req, res) {
+async function editarMedico(req, res) {
   try {
     const id = Number(req.params.id);
 
     const medicoExistente =
-      medicoModel.buscarPorId(id);
+      await medicoModel.buscarPorId(id);
 
     if (!medicoExistente) {
       return res.status(404).json({
@@ -209,7 +209,7 @@ function editarMedico(req, res) {
       });
     }
 
-    const medicos = medicoModel.buscarTodos();
+    const medicos = await medicoModel.buscarTodos();
 
     const emailJaCadastrado = medicos.some(
       (medico) =>
@@ -238,10 +238,10 @@ function editarMedico(req, res) {
     }
 
     const usuarioVinculado =
-      usuarioModel.buscarPorMedicoId(id);
+      await usuarioModel.buscarPorMedicoId(id);
 
     const usuarioComMesmoEmail =
-      usuarioModel.buscarPorEmail(
+      await usuarioModel.buscarPorEmail(
         medicoAtualizado.email
       );
 
@@ -281,10 +281,6 @@ function editarMedico(req, res) {
       }
     }
 
-    /*
-     * Médicos cadastrados antes desta funcionalidade
-     * podem não possuir usuário vinculado.
-     */
     if (!usuarioVinculado && !desejaAlterarSenha) {
       return res.status(400).json({
         erro:
@@ -293,7 +289,7 @@ function editarMedico(req, res) {
     }
 
     const resultado =
-      medicoModel.atualizarMedico(
+      await medicoModel.atualizarMedico(
         medicoAtualizado
       );
 
@@ -301,7 +297,7 @@ function editarMedico(req, res) {
 
     if (usuarioVinculado) {
       usuarioAtualizado =
-        usuarioModel.atualizarUsuarioPorMedicoId(
+        await usuarioModel.atualizarUsuarioPorMedicoId(
           id,
           {
             nome: medicoAtualizado.nome,
@@ -313,7 +309,7 @@ function editarMedico(req, res) {
         );
     } else {
       usuarioAtualizado =
-        usuarioModel.criarUsuarioMedico({
+        await usuarioModel.criarUsuarioMedico({
           nome: medicoAtualizado.nome,
           email: medicoAtualizado.email,
           senha,
@@ -344,12 +340,12 @@ function editarMedico(req, res) {
   }
 }
 
-function excluirMedico(req, res) {
+async function excluirMedico(req, res) {
   try {
     const id = Number(req.params.id);
 
     const medicoExistente =
-      medicoModel.buscarPorId(id);
+      await medicoModel.buscarPorId(id);
 
     if (!medicoExistente) {
       return res.status(404).json({
@@ -357,11 +353,10 @@ function excluirMedico(req, res) {
       });
     }
 
-    const possuiCandidaturas =
-      candidaturaModel.buscarTodos().some(
-        (candidatura) =>
-          Number(candidatura.medicoId) === id
-      );
+    const candidaturas = await candidaturaModel.buscarTodos();
+    const possuiCandidaturas = candidaturas.some(
+        (candidatura) => Number(candidatura.medicoId) === id
+    );
 
     if (possuiCandidaturas) {
       return res.status(409).json({
@@ -370,10 +365,8 @@ function excluirMedico(req, res) {
       });
     }
 
-    const medicoExcluido =
-      medicoModel.excluirMedico(id);
-
-    usuarioModel.excluirUsuarioPorMedicoId(id);
+    const medicoExcluido = await medicoModel.excluirMedico(id);
+    await usuarioModel.excluirUsuarioPorMedicoId(id);
 
     return res.status(200).json({
       mensagem:

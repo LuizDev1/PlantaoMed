@@ -1,10 +1,9 @@
 const plantaoModel = require('../models/plantaoModel');
-
 const candidaturaModel = require('../models/candidaturaModel');
 
-function listarPlantoes(req, res) {
+async function listarPlantoes(req, res) {
   try {
-    const plantoes = plantaoModel.buscarTodos();
+    const plantoes = await plantaoModel.buscarTodos();
 
     return res.status(200).json(plantoes);
   } catch (erro) {
@@ -16,7 +15,7 @@ function listarPlantoes(req, res) {
   }
 }
 
-function cadastrarPlantao(req, res) {
+async function cadastrarPlantao(req, res) {
   try {
     const plantao = {
       data: String(req.body.data || '').trim(),
@@ -31,8 +30,9 @@ function cadastrarPlantao(req, res) {
       });
     }
 
+    const plantoes = await plantaoModel.buscarTodos();
     const plantaoDuplicado =
-      plantaoModel.buscarTodos().some(
+      plantoes.some(
         (plantaoCadastrado) =>
           plantaoCadastrado.data === plantao.data &&
           plantaoCadastrado.horario === plantao.horario
@@ -45,7 +45,7 @@ function cadastrarPlantao(req, res) {
     }
 
     const novoPlantao =
-      plantaoModel.criarPlantao(plantao);
+      await plantaoModel.criarPlantao(plantao);
 
     return res.status(201).json({
       mensagem: 'Plantão cadastrado com sucesso',
@@ -60,12 +60,12 @@ function cadastrarPlantao(req, res) {
   }
 }
 
-function editarPlantao(req, res) {
+async function editarPlantao(req, res) {
   try {
     const id = Number(req.params.id);
 
     const plantaoExistente =
-      plantaoModel.buscarPorId(id);
+      await plantaoModel.buscarPorId(id);
 
     if (!plantaoExistente) {
       return res.status(404).json({
@@ -103,8 +103,9 @@ function editarPlantao(req, res) {
       });
     }
 
+    const plantoes = await plantaoModel.buscarTodos();
     const plantaoDuplicado =
-      plantaoModel.buscarTodos().some(
+      plantoes.some(
         (plantao) =>
           plantao.id !== plantaoExistente.id &&
           plantao.data === plantaoAtualizado.data &&
@@ -118,7 +119,7 @@ function editarPlantao(req, res) {
     }
 
     const resultado =
-      plantaoModel.atualizarPlantao(
+      await plantaoModel.atualizarPlantao(
         plantaoAtualizado
       );
 
@@ -135,12 +136,12 @@ function editarPlantao(req, res) {
   }
 }
 
-function excluirPlantao(req, res) {
+async function excluirPlantao(req, res) {
   try {
     const id = Number(req.params.id);
 
     const plantaoExistente =
-      plantaoModel.buscarPorId(id);
+      await plantaoModel.buscarPorId(id);
 
     if (!plantaoExistente) {
       return res.status(404).json({
@@ -148,8 +149,9 @@ function excluirPlantao(req, res) {
       });
     }
 
+    const candidaturas = await candidaturaModel.buscarTodos();
     const possuiCandidaturas =
-      candidaturaModel.buscarTodos().some(
+      candidaturas.some(
         (candidatura) =>
           Number(candidatura.plantaoId) === id
       );
@@ -162,7 +164,7 @@ function excluirPlantao(req, res) {
     }
 
     const plantaoExcluido =
-      plantaoModel.excluirPlantao(id);
+      await plantaoModel.excluirPlantao(id);
 
     return res.status(200).json({
       mensagem:
