@@ -76,12 +76,27 @@ async function excluirCandidatura(id) {
   return candidatura;
 }
 
+async function excluirCandidaturasPorMedicoId(medicoId) {
+  await pool.query('DELETE FROM candidaturas WHERE medicoId = ?', [Number(medicoId)]);
+}
+
+async function excluirCandidaturasPorPlantaoId(plantaoId) {
+  await pool.query('DELETE FROM candidaturas WHERE plantaoId = ?', [Number(plantaoId)]);
+}
+
+async function cancelarCandidaturasPorPlantaoId(plantaoId) {
+  await pool.query('UPDATE candidaturas SET status = "Cancelado" WHERE plantaoId = ?', [Number(plantaoId)]);
+}
+
 module.exports = {
   criarCandidatura,
   buscarPorId,
   buscarTodos,
   atualizarCandidatura,
   excluirCandidatura,
+  excluirCandidaturasPorMedicoId,
+  excluirCandidaturasPorPlantaoId,
+  cancelarCandidaturasPorPlantaoId,
   atualizarMultiplasCandidaturas,
   validarDados
 };

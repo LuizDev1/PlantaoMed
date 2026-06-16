@@ -149,27 +149,17 @@ async function excluirPlantao(req, res) {
       });
     }
 
-    const candidaturas = await candidaturaModel.buscarTodos();
-    const possuiCandidaturas =
-      candidaturas.some(
-        (candidatura) =>
-          Number(candidatura.plantaoId) === id
-      );
+    // Cancela todas as candidaturas vinculadas ao plantão
+    await candidaturaModel.cancelarCandidaturasPorPlantaoId(id);
 
-    if (possuiCandidaturas) {
-      return res.status(409).json({
-        erro:
-          'Não é possível excluir este plantão, pois existem candidaturas vinculadas a ele'
-      });
-    }
-
-    const plantaoExcluido =
-      await plantaoModel.excluirPlantao(id);
+    // Cancela o plantão em vez de excluí-lo fisicamente
+    const plantaoCancelado =
+      await plantaoModel.cancelarPlantao(id);
 
     return res.status(200).json({
       mensagem:
-        'Plantão excluído com sucesso',
-      plantao: plantaoExcluido
+        'Plantão e candidaturas cancelados com sucesso',
+      plantao: plantaoCancelado
     });
   } catch (erro) {
     console.error(

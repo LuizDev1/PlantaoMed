@@ -69,11 +69,21 @@ async function excluirPlantao(id) {
   return plantao;
 }
 
+async function cancelarPlantao(id) {
+  const plantao = await buscarPorId(id);
+  if (!plantao) return null;
+
+  await pool.query('UPDATE plantoes SET status = "Cancelado" WHERE id = ?', [Number(id)]);
+  plantao.status = 'Cancelado';
+  return plantao;
+}
+
 module.exports = {
   criarPlantao,
   buscarPorId,
   buscarTodos,
   atualizarPlantao,
   excluirPlantao,
+  cancelarPlantao,
   validarDados
 };
