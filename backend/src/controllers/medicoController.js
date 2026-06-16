@@ -353,17 +353,8 @@ async function excluirMedico(req, res) {
       });
     }
 
-    const candidaturas = await candidaturaModel.buscarTodos();
-    const possuiCandidaturas = candidaturas.some(
-        (candidatura) => Number(candidatura.medicoId) === id
-    );
-
-    if (possuiCandidaturas) {
-      return res.status(409).json({
-        erro:
-          'Não é possível excluir este médico, pois existem candidaturas vinculadas a ele'
-      });
-    }
+    // Remove todas as candidaturas vinculadas ao médico antes de excluí-lo
+    await candidaturaModel.excluirCandidaturasPorMedicoId(id);
 
     const medicoExcluido = await medicoModel.excluirMedico(id);
     await usuarioModel.excluirUsuarioPorMedicoId(id);

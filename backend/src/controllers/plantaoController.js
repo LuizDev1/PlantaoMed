@@ -149,19 +149,8 @@ async function excluirPlantao(req, res) {
       });
     }
 
-    const candidaturas = await candidaturaModel.buscarTodos();
-    const possuiCandidaturas =
-      candidaturas.some(
-        (candidatura) =>
-          Number(candidatura.plantaoId) === id
-      );
-
-    if (possuiCandidaturas) {
-      return res.status(409).json({
-        erro:
-          'Não é possível excluir este plantão, pois existem candidaturas vinculadas a ele'
-      });
-    }
+    // Remove todas as candidaturas vinculadas ao plantão antes de excluí-lo
+    await candidaturaModel.excluirCandidaturasPorPlantaoId(id);
 
     const plantaoExcluido =
       await plantaoModel.excluirPlantao(id);
