@@ -353,7 +353,18 @@ async function excluirMedico(req, res) {
       });
     }
 
-    // Remove todas as candidaturas vinculadas ao médico antes de excluí-lo
+    const candidaturas = await candidaturaModel.buscarTodos();
+    const possuiCandidaturaAprovada = candidaturas.some(
+        (candidatura) => Number(candidatura.medicoId) === id && candidatura.status === 'Aprovado'
+    );
+
+    if (possuiCandidaturaAprovada) {
+      return res.status(409).json({
+        erro: 'Não é possível excluir este médico, pois ele possui candidaturas com status "Aprovado"'
+      });
+    }
+
+    // Remove todas as candidaturas restantes vinculadas ao médico antes de excluí-lo
     await candidaturaModel.excluirCandidaturasPorMedicoId(id);
 
     const medicoExcluido = await medicoModel.excluirMedico(id);

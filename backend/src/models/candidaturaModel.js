@@ -84,6 +84,10 @@ async function excluirCandidaturasPorPlantaoId(plantaoId) {
   await pool.query('DELETE FROM candidaturas WHERE plantaoId = ?', [Number(plantaoId)]);
 }
 
+async function cancelarCandidaturasPorPlantaoId(plantaoId) {
+  await pool.query('UPDATE candidaturas SET status = "Cancelado" WHERE plantaoId = ?', [Number(plantaoId)]);
+}
+
 module.exports = {
   criarCandidatura,
   buscarPorId,
@@ -92,6 +96,7 @@ module.exports = {
   excluirCandidatura,
   excluirCandidaturasPorMedicoId,
   excluirCandidaturasPorPlantaoId,
+  cancelarCandidaturasPorPlantaoId,
   atualizarMultiplasCandidaturas,
   validarDados
 };

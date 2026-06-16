@@ -149,16 +149,17 @@ async function excluirPlantao(req, res) {
       });
     }
 
-    // Remove todas as candidaturas vinculadas ao plantão antes de excluí-lo
-    await candidaturaModel.excluirCandidaturasPorPlantaoId(id);
+    // Cancela todas as candidaturas vinculadas ao plantão
+    await candidaturaModel.cancelarCandidaturasPorPlantaoId(id);
 
-    const plantaoExcluido =
-      await plantaoModel.excluirPlantao(id);
+    // Cancela o plantão em vez de excluí-lo fisicamente
+    const plantaoCancelado =
+      await plantaoModel.cancelarPlantao(id);
 
     return res.status(200).json({
       mensagem:
-        'Plantão excluído com sucesso',
-      plantao: plantaoExcluido
+        'Plantão e candidaturas cancelados com sucesso',
+      plantao: plantaoCancelado
     });
   } catch (erro) {
     console.error(
