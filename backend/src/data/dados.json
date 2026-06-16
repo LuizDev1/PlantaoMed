@@ -1,0 +1,61 @@
+{
+  "usuarios": [
+    {
+      "id": 1,
+      "nome": "Administrador",
+      "email": "admin@plantaomed.com",
+      "senha": "123456",
+      "tipo": "administrador"
+    },
+    {
+      "id": 2,
+      "nome": "Dr. João Silva",
+      "email": "joao@plantaomed.com",
+      "senha": "123456",
+      "tipo": "medico",
+      "medicoId": 1
+    },
+    {
+      "id": 3,
+      "nome": "Luiz Fernando Gomes de Almeida",
+      "email": "gomesluiz522@gmail.com",
+      "senha": "minhahjk123",
+      "tipo": "medico",
+      "medicoId": 2
+    }
+  ],
+  "medicos": [
+    {
+      "id": 1,
+      "nome": "João Silva",
+      "email": "joao@plantaomed.com",
+      "especialidade": "Clínica Geral",
+      "telefone": "61999999999"
+    },
+    {
+      "id": 2,
+      "nome": "Luiz Fernando Gomes de Almeida",
+      "email": "gomesluiz522@gmail.com",
+      "especialidade": "Clínico Geral",
+      "telefone": "61999999988"
+    }
+  ],
+  "plantoes": [
+    {
+      "id": 1,
+      "data": "2026-02-22",
+      "horario": "20:20",
+      "valor": 2300,
+      "status": "Preenchido"
+    }
+  ],
+  "candidaturas": [
+    {
+      "id": 1,
+      "medicoId": 2,
+      "plantaoId": 1,
+      "dataCandidatura": "2026-06-14",
+      "status": "Aprovada"
+    }
+  ]
+}

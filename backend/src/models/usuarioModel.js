@@ -1,46 +1,140 @@
-const pool = require('../config/db');
+const {
+  lerDados,
+  salvarDados
+} = require('../utils/fileManager');
 
-async function buscarPorEmail(email) {
-  const emailNormalizado = String(email || '').trim().toLowerCase();
-  const [rows] = await pool.query('SELECT * FROM usuarios WHERE LOWER(email) = ?', [emailNormalizado]);
-  return rows.length > 0 ? rows[0] : null;
+function carregarDados() {
+  const dados = lerDados();
+
+  if (!Array.isArray(dados.usuarios)) {
+    dados.usuarios = [];
+  }
+
+  return dados;
 }
 
-async function buscarPorMedicoId(medicoId) {
-  const [rows] = await pool.query('SELECT * FROM usuarios WHERE medicoId = ?', [Number(medicoId)]);
-  return rows.length > 0 ? rows[0] : null;
-}
+function buscarPorEmail(email) {
+  const dados = carregarDados();
 
-async function criarUsuarioMedico({ nome, email, senha, medicoId }) {
-  const [result] = await pool.query(
-    'INSERT INTO usuarios (nome, email, senha, tipo, medicoId) VALUES (?, ?, ?, ?, ?)',
-    [String(nome).trim(), String(email).trim().toLowerCase(), String(senha), 'medico', Number(medicoId)]
+  const emailNormalizado = String(email || '')
+    .trim()
+    .toLowerCase();
+
+  return dados.usuarios.find(
+    (usuario) =>
+      String(usuario.email).toLowerCase() ===
+      emailNormalizado
   );
-  return { id: result.insertId, nome, email, tipo: 'medico', medicoId };
 }
 
-async function atualizarUsuarioPorMedicoId(medicoId, novosDados) {
-  const usuario = await buscarPorMedicoId(medicoId);
-  if (!usuario) return null;
+function buscarPorMedicoId(medicoId) {
+  const dados = carregarDados();
 
-  const nome = novosDados.nome !== undefined ? String(novosDados.nome).trim() : usuario.nome;
-  const email = novosDados.email !== undefined ? String(novosDados.email).trim().toLowerCase() : usuario.email;
-  const senha = novosDados.senha ? String(novosDados.senha) : usuario.senha;
+  return dados.usuarios.find(
+    (usuario) =>
+      Number(usuario.medicoId) ===
+      Number(medicoId)
+  );
+}
 
-  await pool.query(
-    'UPDATE usuarios SET nome = ?, email = ?, senha = ? WHERE medicoId = ?',
-    [nome, email, senha, Number(medicoId)]
+function criarUsuarioMedico({
+  nome,
+  email,
+  senha,
+  medicoId
+}) {
+  const dados = carregarDados();
+
+  const novoId =
+    dados.usuarios.length > 0
+      ? Math.max(
+          ...dados.usuarios.map(
+            (usuario) =>
+              Number(usuario.id) || 0
+          )
+        ) + 1
+      : 1;
+
+  const novoUsuario = {
+    id: novoId,
+    nome: String(nome).trim(),
+    email: String(email)
+      .trim()
+      .toLowerCase(),
+    senha: String(senha),
+    tipo: 'medico',
+    medicoId: Number(medicoId)
+  };
+
+  dados.usuarios.push(novoUsuario);
+  salvarDados(dados);
+
+  return novoUsuario;
+}
+
+function atualizarUsuarioPorMedicoId(
+  medicoId,
+  novosDados
+) {
+  const dados = carregarDados();
+
+  const indice = dados.usuarios.findIndex(
+    (usuario) =>
+      Number(usuario.medicoId) ===
+      Number(medicoId)
   );
 
-  return { ...usuario, nome, email, senha };
+  if (indice === -1) {
+    return null;
+  }
+
+  const usuarioAtual = dados.usuarios[indice];
+
+  dados.usuarios[indice] = {
+    ...usuarioAtual,
+
+    nome:
+      novosDados.nome !== undefined
+        ? String(novosDados.nome).trim()
+        : usuarioAtual.nome,
+
+    email:
+      novosDados.email !== undefined
+        ? String(novosDados.email)
+            .trim()
+            .toLowerCase()
+        : usuarioAtual.email,
+
+    senha:
+      novosDados.senha
+        ? String(novosDados.senha)
+        : usuarioAtual.senha
+  };
+
+  salvarDados(dados);
+
+  return dados.usuarios[indice];
 }
 
-async function excluirUsuarioPorMedicoId(medicoId) {
-  const usuario = await buscarPorMedicoId(medicoId);
-  if (!usuario) return null;
+function excluirUsuarioPorMedicoId(medicoId) {
+  const dados = carregarDados();
 
-  await pool.query('DELETE FROM usuarios WHERE medicoId = ?', [Number(medicoId)]);
-  return usuario;
+  const indice = dados.usuarios.findIndex(
+    (usuario) =>
+      Number(usuario.medicoId) ===
+      Number(medicoId)
+  );
+
+  if (indice === -1) {
+    return null;
+  }
+
+  const [usuarioExcluido] =
+    dados.usuarios.splice(indice, 1);
+
+  salvarDados(dados);
+
+  return usuarioExcluido;
 }
 
 module.exports = {
