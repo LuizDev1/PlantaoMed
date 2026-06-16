@@ -40,50 +40,110 @@ export default function Login() {
   }
 
   return (
-    <div>
-      <h1>PlantãoMed</h1>
-      <h2>Login</h2>
+    <div style={estiloContainer}>
+      <div style={estiloCard}>
+        <h1 style={{ textAlign: 'center', marginBottom: '8px' }}>PlantãoMed</h1>
+        <h2 style={{ textAlign: 'center', color: '#555', marginTop: 0, marginBottom: '24px' }}>Login</h2>
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email">E-mail</label>
+        <form onSubmit={handleSubmit}>
+          <div style={estiloGrupo}>
+            <label htmlFor="email">E-mail</label>
 
-          <input
-            id="email"
-            type="email"
-            placeholder="Digite seu e-mail"
-            value={email}
-            onChange={(evento) =>
-              setEmail(evento.target.value)
-            }
-            required
-          />
-        </div>
+            <input
+              id="email"
+              type="email"
+              placeholder="Digite seu e-mail"
+              value={email}
+              onChange={(evento) =>
+                setEmail(evento.target.value)
+              }
+              required
+              style={estiloCampo}
+            />
+          </div>
 
-        <div>
-          <label htmlFor="senha">Senha</label>
+          <div style={estiloGrupo}>
+            <label htmlFor="senha">Senha</label>
 
-          <input
-            id="senha"
-            type="password"
-            placeholder="Digite sua senha"
-            value={senha}
-            onChange={(evento) =>
-              setSenha(evento.target.value)
-            }
-            required
-          />
-        </div>
+            <input
+              id="senha"
+              type="password"
+              placeholder="Digite sua senha"
+              value={senha}
+              onChange={(evento) =>
+                setSenha(evento.target.value)
+              }
+              required
+              style={estiloCampo}
+            />
+          </div>
 
-        {erro && <p>{erro}</p>}
+          {erro && <p style={{ color: 'red', marginTop: '10px' }}>{erro}</p>}
 
-        <button
-          type="submit"
-          disabled={carregando}
-        >
-          {carregando ? 'Entrando...' : 'Entrar'}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={carregando}
+            style={carregando ? estiloBotaoDesabilitado : estiloBotao}
+          >
+            {carregando ? 'Entrando...' : 'Entrar'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
+
+const estiloContainer = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  minHeight: '100vh',
+  backgroundColor: '#f9f9f9',
+  padding: '24px'
+};
+
+const estiloCard = {
+  width: '100%',
+  maxWidth: '400px',
+  border: '1px solid #cccccc',
+  borderRadius: '8px',
+  padding: '32px',
+  backgroundColor: '#ffffff',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
+};
+
+const estiloGrupo = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  marginBottom: '16px'
+};
+
+const estiloCampo = {
+  width: '100%',
+  padding: '10px',
+  boxSizing: 'border-box',
+  border: '1px solid #cccccc',
+  borderRadius: '4px',
+  fontSize: '16px'
+};
+
+const estiloBotao = {
+  width: '100%',
+  padding: '12px',
+  backgroundColor: '#007bff',
+  color: '#ffffff',
+  border: 'none',
+  borderRadius: '4px',
+  fontSize: '16px',
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  marginTop: '16px',
+  transition: 'background-color 0.2s'
+};
+
+const estiloBotaoDesabilitado = {
+  ...estiloBotao,
+  backgroundColor: '#999999',
+  cursor: 'not-allowed'
+};

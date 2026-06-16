@@ -2,10 +2,10 @@ const relatorioModel = require(
   '../models/relatorioModel'
 );
 
-function gerarRelatorioCandidaturas(req, res) {
+async function gerarRelatorioCandidaturas(req, res) {
   try {
     const dadosRelatorio =
-      relatorioModel.gerarDadosRelatorio();
+      await relatorioModel.gerarDadosRelatorio();
 
     return res.status(200).json(
       dadosRelatorio
