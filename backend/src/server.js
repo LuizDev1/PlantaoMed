@@ -1,8 +1,5 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-
-const initDb = require('./config/initDb');
 
 const authRoutes = require('./routes/authRoutes');
 const medicoRoutes = require('./routes/medicoRoutes');
@@ -34,8 +31,7 @@ app.use((req, res) => {
   });
 });
 
-app.listen(PORT, async () => {
-  await initDb();
+app.listen(PORT, () => {
   console.log(
     `Servidor executando em http://localhost:${PORT}`
   );

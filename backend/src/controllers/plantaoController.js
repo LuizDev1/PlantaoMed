@@ -1,9 +1,10 @@
 const plantaoModel = require('../models/plantaoModel');
+
 const candidaturaModel = require('../models/candidaturaModel');
 
-async function listarPlantoes(req, res) {
+function listarPlantoes(req, res) {
   try {
-    const plantoes = await plantaoModel.buscarTodos();
+    const plantoes = plantaoModel.buscarTodos();
 
     return res.status(200).json(plantoes);
   } catch (erro) {
@@ -15,7 +16,7 @@ async function listarPlantoes(req, res) {
   }
 }
 
-async function cadastrarPlantao(req, res) {
+function cadastrarPlantao(req, res) {
   try {
     const plantao = {
       data: String(req.body.data || '').trim(),
@@ -30,9 +31,8 @@ async function cadastrarPlantao(req, res) {
       });
     }
 
-    const plantoes = await plantaoModel.buscarTodos();
     const plantaoDuplicado =
-      plantoes.some(
+      plantaoModel.buscarTodos().some(
         (plantaoCadastrado) =>
           plantaoCadastrado.data === plantao.data &&
           plantaoCadastrado.horario === plantao.horario
@@ -45,7 +45,7 @@ async function cadastrarPlantao(req, res) {
     }
 
     const novoPlantao =
-      await plantaoModel.criarPlantao(plantao);
+      plantaoModel.criarPlantao(plantao);
 
     return res.status(201).json({
       mensagem: 'Plantão cadastrado com sucesso',
@@ -60,12 +60,12 @@ async function cadastrarPlantao(req, res) {
   }
 }
 
-async function editarPlantao(req, res) {
+function editarPlantao(req, res) {
   try {
     const id = Number(req.params.id);
 
     const plantaoExistente =
-      await plantaoModel.buscarPorId(id);
+      plantaoModel.buscarPorId(id);
 
     if (!plantaoExistente) {
       return res.status(404).json({
@@ -103,9 +103,8 @@ async function editarPlantao(req, res) {
       });
     }
 
-    const plantoes = await plantaoModel.buscarTodos();
     const plantaoDuplicado =
-      plantoes.some(
+      plantaoModel.buscarTodos().some(
         (plantao) =>
           plantao.id !== plantaoExistente.id &&
           plantao.data === plantaoAtualizado.data &&
@@ -119,7 +118,7 @@ async function editarPlantao(req, res) {
     }
 
     const resultado =
-      await plantaoModel.atualizarPlantao(
+      plantaoModel.atualizarPlantao(
         plantaoAtualizado
       );
 
@@ -136,12 +135,12 @@ async function editarPlantao(req, res) {
   }
 }
 
-async function excluirPlantao(req, res) {
+function excluirPlantao(req, res) {
   try {
     const id = Number(req.params.id);
 
     const plantaoExistente =
-      await plantaoModel.buscarPorId(id);
+      plantaoModel.buscarPorId(id);
 
     if (!plantaoExistente) {
       return res.status(404).json({
@@ -149,9 +148,8 @@ async function excluirPlantao(req, res) {
       });
     }
 
-    const candidaturas = await candidaturaModel.buscarTodos();
     const possuiCandidaturas =
-      candidaturas.some(
+      candidaturaModel.buscarTodos().some(
         (candidatura) =>
           Number(candidatura.plantaoId) === id
       );
@@ -164,7 +162,7 @@ async function excluirPlantao(req, res) {
     }
 
     const plantaoExcluido =
-      await plantaoModel.excluirPlantao(id);
+      plantaoModel.excluirPlantao(id);
 
     return res.status(200).json({
       mensagem:

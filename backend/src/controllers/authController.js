@@ -1,6 +1,6 @@
 const usuarioModel = require('../models/usuarioModel');
 
-async function login(req, res) {
+function login(req, res) {
   try {
     const { email, senha } = req.body;
 
@@ -10,7 +10,7 @@ async function login(req, res) {
       });
     }
 
-    const usuario = await usuarioModel.buscarPorEmail(email);
+    const usuario = usuarioModel.buscarPorEmail(email);
 
     if (!usuario || usuario.senha !== senha) {
       return res.status(401).json({
@@ -18,16 +18,16 @@ async function login(req, res) {
       });
     }
 
-    return res.status(200).json({
-      mensagem: 'Login realizado com sucesso',
-      usuario: {
-        id: usuario.id,
-        nome: usuario.nome,
-        email: usuario.email,
-        tipo: usuario.tipo,
-        medicoId: usuario.medicoId || null
-      }
-    });
+  return res.status(200).json({
+    mensagem: 'Login realizado com sucesso',
+    usuario: {
+      id: usuario.id,
+      nome: usuario.nome,
+      email: usuario.email,
+      tipo: usuario.tipo,
+      medicoId: usuario.medicoId || null
+  }
+});
   } catch (erro) {
     console.error('Erro ao realizar login:', erro);
 

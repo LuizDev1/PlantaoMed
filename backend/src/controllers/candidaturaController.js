@@ -10,10 +10,10 @@ const plantaoModel = require(
   '../models/plantaoModel'
 );
 
-async function listarCandidaturas(req, res) {
+function listarCandidaturas(req, res) {
   try {
     const candidaturas =
-      await candidaturaModel.buscarTodos();
+      candidaturaModel.buscarTodos();
 
     return res.status(200).json(candidaturas);
   } catch (erro) {
@@ -28,7 +28,7 @@ async function listarCandidaturas(req, res) {
   }
 }
 
-async function cadastrarCandidatura(req, res) {
+function cadastrarCandidatura(req, res) {
   try {
     const medicoId = Number(req.body.medicoId);
     const plantaoId = Number(req.body.plantaoId);
@@ -51,7 +51,7 @@ async function cadastrarCandidatura(req, res) {
     }
 
     const medico =
-      await medicoModel.buscarPorId(medicoId);
+      medicoModel.buscarPorId(medicoId);
 
     if (!medico) {
       return res.status(404).json({
@@ -60,7 +60,7 @@ async function cadastrarCandidatura(req, res) {
     }
 
     const plantao =
-      await plantaoModel.buscarPorId(plantaoId);
+      plantaoModel.buscarPorId(plantaoId);
 
     if (!plantao) {
       return res.status(404).json({
@@ -75,9 +75,8 @@ async function cadastrarCandidatura(req, res) {
       });
     }
 
-    const candidaturas = await candidaturaModel.buscarTodos();
     const candidaturaDuplicada =
-      candidaturas.some(
+      candidaturaModel.buscarTodos().some(
         (item) =>
           Number(item.medicoId) === medicoId &&
           Number(item.plantaoId) === plantaoId
@@ -91,7 +90,7 @@ async function cadastrarCandidatura(req, res) {
     }
 
     const novaCandidatura =
-      await candidaturaModel.criarCandidatura(
+      candidaturaModel.criarCandidatura(
         candidatura
       );
 
@@ -112,12 +111,12 @@ async function cadastrarCandidatura(req, res) {
   }
 }
 
-async function editarCandidatura(req, res) {
+function editarCandidatura(req, res) {
   try {
     const id = Number(req.params.id);
 
     const candidaturaExistente =
-      await candidaturaModel.buscarPorId(id);
+      candidaturaModel.buscarPorId(id);
 
     if (!candidaturaExistente) {
       return res.status(404).json({
@@ -148,7 +147,7 @@ async function editarCandidatura(req, res) {
       });
     }
 
-    const plantao = await plantaoModel.buscarPorId(
+    const plantao = plantaoModel.buscarPorId(
       candidaturaExistente.plantaoId
     );
 
@@ -165,7 +164,7 @@ async function editarCandidatura(req, res) {
       };
 
       const resultado =
-        await candidaturaModel.atualizarCandidatura(
+        candidaturaModel.atualizarCandidatura(
           candidaturaAtualizada
         );
 
@@ -177,7 +176,7 @@ async function editarCandidatura(req, res) {
     }
 
     const candidaturas =
-      await candidaturaModel.buscarTodos();
+      candidaturaModel.buscarTodos();
 
     const outraCandidaturaAprovada =
       candidaturas.some(
@@ -198,26 +197,49 @@ async function editarCandidatura(req, res) {
       });
     }
 
-    // Aceitando a candidatura atual e rejeitando o resto
-    await candidaturaModel.atualizarCandidatura({
-      ...candidaturaExistente,
-      status: 'Aprovada'
-    });
+    const candidaturasAtualizadas =
+      candidaturas.map((candidatura) => {
+        const mesmoPlantao =
+          Number(candidatura.plantaoId) ===
+          Number(
+            candidaturaExistente.plantaoId
+          );
 
-    // Rejeitar os outros pendentes do mesmo plantão
-    await candidaturaModel.atualizarMultiplasCandidaturas(
-      candidaturaExistente.plantaoId,
-      'Pendente',
-      'Rejeitada'
+        if (!mesmoPlantao) {
+          return candidatura;
+        }
+
+        if (
+          candidatura.id ===
+          candidaturaExistente.id
+        ) {
+          return {
+            ...candidatura,
+            status: 'Aprovada'
+          };
+        }
+
+        if (candidatura.status === 'Pendente') {
+          return {
+            ...candidatura,
+            status: 'Rejeitada'
+          };
+        }
+
+        return candidatura;
+      });
+
+    candidaturaModel.salvarDados(
+      candidaturasAtualizadas
     );
 
-    await plantaoModel.atualizarPlantao({
+    plantaoModel.atualizarPlantao({
       ...plantao,
       status: 'Preenchido'
     });
 
     const candidaturaAprovada =
-      await candidaturaModel.buscarPorId(id);
+      candidaturaModel.buscarPorId(id);
 
     return res.status(200).json({
       mensagem:
@@ -236,12 +258,12 @@ async function editarCandidatura(req, res) {
   }
 }
 
-async function excluirCandidatura(req, res) {
+function excluirCandidatura(req, res) {
   try {
     const id = Number(req.params.id);
 
     const candidaturaExistente =
-      await candidaturaModel.buscarPorId(id);
+      candidaturaModel.buscarPorId(id);
 
     if (!candidaturaExistente) {
       return res.status(404).json({
@@ -259,7 +281,7 @@ async function excluirCandidatura(req, res) {
     }
 
     const candidaturaExcluida =
-      await candidaturaModel.excluirCandidatura(id);
+      candidaturaModel.excluirCandidatura(id);
 
     return res.status(200).json({
       mensagem:

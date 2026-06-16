@@ -1,72 +1,133 @@
-const pool = require('../config/db');
+const {
+  lerDados,
+  salvarDados: salvarArquivo
+} = require('../utils/fileManager');
+
+function carregarDados() {
+  const dados = lerDados();
+
+  if (!Array.isArray(dados.plantoes)) {
+    return [];
+  }
+
+  return dados.plantoes;
+}
+
+function salvarDados(plantoes) {
+  const dados = lerDados();
+
+  dados.plantoes = plantoes;
+
+  salvarArquivo(dados);
+}
 
 function validarDados(plantao) {
-  const dataValida = typeof plantao.data === 'string' && plantao.data.trim() !== '';
-  const horarioValido = typeof plantao.horario === 'string' && plantao.horario.trim() !== '';
-  const valorValido = plantao.valor !== '' && Number.isFinite(Number(plantao.valor)) && Number(plantao.valor) >= 0;
-  const statusValido = typeof plantao.status === 'string' && plantao.status.trim() !== '';
+  const dataValida =
+    typeof plantao.data === 'string' &&
+    plantao.data.trim() !== '';
 
-  return dataValida && horarioValido && valorValido && statusValido;
-}
+  const horarioValido =
+    typeof plantao.horario === 'string' &&
+    plantao.horario.trim() !== '';
 
-async function criarPlantao(plantao) {
-  const data = plantao.data.trim();
-  const horario = plantao.horario.trim();
-  const valor = Number(plantao.valor);
-  const status = plantao.status.trim();
+  const valorValido =
+    plantao.valor !== '' &&
+    Number.isFinite(Number(plantao.valor)) &&
+    Number(plantao.valor) >= 0;
 
-  const [result] = await pool.query(
-    'INSERT INTO plantoes (data, horario, valor, status) VALUES (?, ?, ?, ?)',
-    [data, horario, valor, status]
+  const statusValido =
+    typeof plantao.status === 'string' &&
+    plantao.status.trim() !== '';
+
+  return (
+    dataValida &&
+    horarioValido &&
+    valorValido &&
+    statusValido
   );
-  
-  return { id: result.insertId, data, horario, valor, status };
 }
 
-async function buscarPorId(id) {
-  const [rows] = await pool.query('SELECT * FROM plantoes WHERE id = ?', [Number(id)]);
-  if (rows.length === 0) return null;
-  // Format date to YYYY-MM-DD
-  const row = rows[0];
-  if (row.data instanceof Date) {
-      row.data = row.data.toISOString().split('T')[0];
+function criarPlantao(plantao) {
+  const plantoes = carregarDados();
+
+  const novoId =
+    plantoes.length > 0
+      ? Math.max(
+          ...plantoes.map(
+            (plantaoCadastrado) =>
+              Number(plantaoCadastrado.id) || 0
+          )
+        ) + 1
+      : 1;
+
+  const novoPlantao = {
+    id: novoId,
+    data: plantao.data.trim(),
+    horario: plantao.horario.trim(),
+    valor: Number(plantao.valor),
+    status: plantao.status.trim()
+  };
+
+  plantoes.push(novoPlantao);
+  salvarDados(plantoes);
+
+  return novoPlantao;
+}
+
+function buscarPorId(id) {
+  const plantoes = carregarDados();
+
+  return plantoes.find(
+    (plantao) => plantao.id === Number(id)
+  );
+}
+
+function buscarTodos() {
+  return carregarDados();
+}
+
+function atualizarPlantao(plantaoAtualizado) {
+  const plantoes = carregarDados();
+
+  const indice = plantoes.findIndex(
+    (plantao) =>
+      plantao.id === Number(plantaoAtualizado.id)
+  );
+
+  if (indice === -1) {
+    return null;
   }
-  return row;
+
+  plantoes[indice] = {
+    id: plantoes[indice].id,
+    data: plantaoAtualizado.data.trim(),
+    horario: plantaoAtualizado.horario.trim(),
+    valor: Number(plantaoAtualizado.valor),
+    status: plantaoAtualizado.status.trim()
+  };
+
+  salvarDados(plantoes);
+
+  return plantoes[indice];
 }
 
-async function buscarTodos() {
-  const [rows] = await pool.query('SELECT * FROM plantoes');
-  return rows.map(row => {
-    if (row.data instanceof Date) {
-        row.data = row.data.toISOString().split('T')[0];
-    }
-    return row;
-  });
-}
+function excluirPlantao(id) {
+  const plantoes = carregarDados();
 
-async function atualizarPlantao(plantaoAtualizado) {
-  const id = Number(plantaoAtualizado.id);
-  const data = plantaoAtualizado.data.trim();
-  const horario = plantaoAtualizado.horario.trim();
-  const valor = Number(plantaoAtualizado.valor);
-  const status = plantaoAtualizado.status.trim();
-
-  const [result] = await pool.query(
-    'UPDATE plantoes SET data = ?, horario = ?, valor = ?, status = ? WHERE id = ?',
-    [data, horario, valor, status, id]
+  const indice = plantoes.findIndex(
+    (plantao) => plantao.id === Number(id)
   );
 
-  if (result.affectedRows === 0) return null;
+  if (indice === -1) {
+    return null;
+  }
 
-  return { id, data, horario, valor, status };
-}
+  const plantaoExcluido = plantoes[indice];
 
-async function excluirPlantao(id) {
-  const plantao = await buscarPorId(id);
-  if (!plantao) return null;
+  plantoes.splice(indice, 1);
+  salvarDados(plantoes);
 
-  await pool.query('DELETE FROM plantoes WHERE id = ?', [Number(id)]);
-  return plantao;
+  return plantaoExcluido;
 }
 
 module.exports = {
@@ -75,5 +136,7 @@ module.exports = {
   buscarTodos,
   atualizarPlantao,
   excluirPlantao,
+  salvarDados,
+  carregarDados,
   validarDados
 };
